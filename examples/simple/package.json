@@ -1,0 +1,10 @@
+{
+  "name": "simple",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "tsc src/*.ts --target es5"
+  },
+  "devDependencies": {
+    "typescript": "^3.5.1"
+  }
+}

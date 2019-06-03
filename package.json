@@ -1,0 +1,42 @@
+{
+  "name": "build-if-changed",
+  "version": "1.0.0",
+  "description": "Run build scripts only when files changed",
+  "license": "MIT",
+  "main": "src/index.js",
+  "bin": {
+    "bic": "bin/cli.js",
+    "build-if-changed": "bin/cli.js"
+  },
+  "files": [
+    "src",
+    "bin"
+  ],
+  "dependencies": {
+    "lodge": "^0.1.1",
+    "recrawl": "^1.0.3",
+    "saxon": "^0.1.15"
+  },
+  "devDependencies": {
+    "husky": "^2.3.0",
+    "prettier": "^1.17.1",
+    "pretty-quick": "^1.11.0"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "pretty-quick --staged"
+    }
+  },
+  "author": "Alec Larson",
+  "contributors": [
+    "Michel Weststrate"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aleclarson/build-if-changed.git"
+  },
+  "homepage": "https://github.com/aleclarson/build-if-changed#readme",
+  "bugs": {
+    "url": "https://github.com/aleclarson/build-if-changed/issues"
+  }
+}

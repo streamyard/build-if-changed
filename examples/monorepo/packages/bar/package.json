@@ -1,0 +1,7 @@
+{
+  "name": "bar",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "tsc src/*.ts --target es5"
+  }
+}

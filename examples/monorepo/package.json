@@ -1,0 +1,12 @@
+{
+  "private": true,
+  "scripts": {
+    "build": "bic"
+  },
+  "devDependencies": {
+    "typescript": "^3.5.1"
+  },
+  "workspaces": [
+    "packages/*"
+  ]
+}
