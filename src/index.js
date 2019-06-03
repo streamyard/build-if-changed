@@ -8,24 +8,10 @@ const checksum = require('./checksum')
 const PKG_JSON = 'package.json'
 const CACHE_NAME = '.bic_cache'
 
-// Cycle through colors for log prefixes.
-const nextColor = (() => {
-  const colors = ['yellow', 'green', 'cyan', 'pink', 'red', 'blue']
-  colors.unshift(...colors.map(color => 'l' + color))
-
-  let i = 0
-  return () => {
-    const color = colors[i++]
-    if (i >= colors.length) i = 0
-    return color
-  }
-})()
-
-exports.findPackages = (root, opts) =>
-  crawl(root, {
+exports.findPackages = opts =>
+  crawl(opts.cwd, {
     only: [PKG_JSON],
-    skip: ['.git', 'node_modules'].concat(readIgnored(root)),
-    ...opts,
+    skip: opts.ignore ? opts.ignore(opts.cwd) : [],
   })
 
 exports.loadPackages = (packages, opts = {}) => {
@@ -99,7 +85,7 @@ exports.buildPackages = async (packages, opts = {}) => {
   return exitCodes.every(code => code == 0)
 }
 
-exports.getChanged = packages => {
+exports.getChanged = (packages, opts = {}) => {
   const promises = packages.map(async pkg => {
     const config = 'bic' in pkg ? pkg.bic : {}
     if (config === false) {
@@ -115,21 +101,23 @@ exports.getChanged = packages => {
 
     const files = await crawl(pkg.root, {
       only: Array.isArray(config) ? config : config.only,
-      skip: [CACHE_NAME, '.git', 'node_modules'].concat(
-        readIgnored(pkg.root),
+      skip: [CACHE_NAME].concat(
+        opts.ignore ? opts.ignore(pkg.root) : [],
         config.skip || []
       ),
     })
 
     const cachePath = join(pkg.root, CACHE_NAME)
     const cache = fs.isFile(cachePath) ? fs.readJson(cachePath) : {}
-    let changed = false
+
+    // Track changed paths for easier debugging.
+    const changed = []
 
     // Look for deleted files.
     for (const name in cache)
       if (!files.includes(name)) {
         delete cache[name]
-        changed = true
+        changed.push(name)
       }
 
     // Look for added/changed files.
@@ -142,14 +130,14 @@ exports.getChanged = packages => {
           const hash = await checksum(path)
           if (hash !== prev[1]) {
             cache[name] = [mtime, hash]
-            changed = true
+            changed.push(name)
           }
         }
       })
     )
 
-    if (changed) fs.write(cachePath, JSON.stringify(cache))
-    return changed
+    if (changed.length) fs.write(cachePath, JSON.stringify(cache))
+    return changed.length > 0
   })
 
   // Return the packages that changed.
@@ -158,13 +146,17 @@ exports.getChanged = packages => {
   )
 }
 
-function readIgnored(dir) {
-  try {
-    return fs.read(join(dir, '.gitignore')).split(/\r?\n/)
-  } catch {
-    return []
+const nextColor = (() => {
+  const colors = ['yellow', 'green', 'cyan', 'pink', 'red', 'blue']
+  colors.unshift(...colors.map(color => 'l' + color))
+
+  let i = 0
+  return () => {
+    const color = colors[i++]
+    if (i >= colors.length) i = 0
+    return color
   }
-}
+})()
 
 function getPrefix(name, log) {
   const prefix = `[${name}]`
