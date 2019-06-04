@@ -13,6 +13,7 @@
     "bin"
   ],
   "dependencies": {
+    "has-flag": "^4.0.0",
     "lodge": "^0.1.1",
     "recrawl": "^1.0.3",
     "saxon": "^0.1.15"

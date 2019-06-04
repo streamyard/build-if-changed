@@ -137,7 +137,7 @@ exports.getChanged = (packages, opts = {}) => {
     )
 
     if (changed.length) fs.write(cachePath, JSON.stringify(cache))
-    return changed.length > 0
+    return !!(changed.length || opts.force)
   })
 
   // Return the packages that changed.
