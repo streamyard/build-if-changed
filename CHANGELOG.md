@@ -1,3 +1,7 @@
+# 1.4.0
+
+- Use `yarn run` by default (and use `npm run` if a `package-lock.json` exists)
+
 # 1.3.0
 
 - Added `-h` flag for help
