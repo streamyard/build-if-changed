@@ -131,6 +131,8 @@ exports.getChanged = (packages, opts = {}) => {
           if (hash !== prev[1]) {
             cache[name] = [mtime, hash]
             changed.push(name)
+          } else {
+            prev[0] = mtime
           }
         }
       })
