@@ -1,9 +1,9 @@
 const { join, resolve, basename, dirname, isAbsolute } = require('path')
 const { crawl } = require('recrawl')
 const fs = require('saxon/sync')
-const log = require('lodge')
 const spawn = require('./spawn')
 const checksum = require('./checksum')
+const createLog = require('./log')
 
 const PKG_JSON = 'package.json'
 const CACHE_NAME = '.bic_cache'
@@ -15,7 +15,7 @@ exports.findPackages = opts =>
   })
 
 exports.loadPackages = (packages, opts = {}) => {
-  const log = opts.log || require('./noop-log')
+  const log = createLog(opts)
   return packages
     .map(pkg => {
       pkg = resolve(opts.cwd, pkg)
@@ -46,7 +46,7 @@ exports.loadPackages = (packages, opts = {}) => {
 }
 
 exports.buildPackages = async (packages, opts = {}) => {
-  const log = opts.log || require('./noop-log')
+  const log = createLog(opts)
   const exitCodes = await Promise.all(
     packages.map(pkg => {
       const cmd = fs.isFile(join(pkg.root, 'yarn.lock')) ? 'yarn' : 'npm'
@@ -149,21 +149,18 @@ exports.getChanged = (packages, opts = {}) => {
 }
 
 const nextColor = (() => {
-  const colors = ['yellow', 'green', 'cyan', 'pink', 'red', 'blue']
-  colors.unshift(...colors.map(color => 'l' + color))
-
+  const colors = require('./colors')
+  const keys = Object.keys(colors).reverse()
   let i = 0
   return () => {
-    const color = colors[i++]
-    if (i >= colors.length) i = 0
-    return color
+    const key = keys[i++]
+    if (i >= keys.length) i = 0
+    return colors[key]
   }
 })()
 
-function getPrefix(name, log) {
-  const prefix = `[${name}]`
-  const color = nextColor()
-  return log[color] ? log[color](prefix) : prefix
+function getPrefix(name) {
+  return nextColor()(`[${name}]`)
 }
 
 function getLines(data) {
