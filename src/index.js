@@ -49,7 +49,7 @@ exports.buildPackages = async (packages, opts = {}) => {
   const log = createLog(opts)
   const exitCodes = await Promise.all(
     packages.map(pkg => {
-      const cmd = fs.isFile(join(pkg.root, 'yarn.lock')) ? 'yarn' : 'npm'
+      const cmd = getRunner(pkg.root)
       const proc = spawn(`${cmd} run build`, {
         cwd: pkg.root,
       })
@@ -168,4 +168,8 @@ function getLines(data) {
     .toString()
     .trim()
     .split(/\r?\n/)
+}
+
+function getRunner(root) {
+  return fs.isFile(join(root, 'package-lock.json')) ? 'npm' : 'yarn'
 }
