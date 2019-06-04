@@ -2,6 +2,7 @@
 const hasFlag = require('has-flag')
 require('../src/cli')
   .run({
+    help: hasFlag('-h'),
     force: hasFlag('-f'),
     silent: hasFlag('-s'),
   })

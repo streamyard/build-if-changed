@@ -1,8 +1,15 @@
 const { findPackages, loadPackages, getChanged, buildPackages } = require('.')
 const createLog = require('./log')
+const path = require('path')
+const fs = require('saxon/sync')
 
 exports.run = async (opts = {}) => {
   const log = createLog(opts)
+
+  if (opts.help) {
+    log(fs.read(path.resolve(__dirname, './help.txt')))
+    process.exit()
+  }
 
   if (opts.cwd == null) opts.cwd = process.cwd()
   if (opts.ignore == null) {
