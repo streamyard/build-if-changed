@@ -1,14 +1,14 @@
 import { findPackages, loadPackages, getChanged, buildPackages } from '.'
 import { GitIgnore } from './gitignore'
+import { resolve } from 'path'
 import createLog from './log'
-import path from 'path'
 import fs = require('saxon/sync')
 
 exports.run = async (opts = {}) => {
   const log = createLog(opts)
 
   if (opts.help) {
-    log(fs.read(path.resolve(__dirname, '..', 'help.txt')))
+    log(fs.read(resolve(__dirname, '..', 'help.txt')))
     process.exit()
   }
 
