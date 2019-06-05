@@ -1,5 +1,5 @@
 {
-  "name": "simple",
+  "name": "yarn",
   "version": "1.0.0",
   "scripts": {
     "build": "tsc src/*.ts --target es5"
