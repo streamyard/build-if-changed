@@ -1,4 +1,4 @@
-import { dirname, join, relative, isAbsolute } from 'path'
+import { basename, dirname, join, relative, isAbsolute } from 'path'
 import { createMatcher, GlobMatcher } from 'recrawl'
 import fs = require('saxon/sync')
 import * as os from 'os'
@@ -22,6 +22,9 @@ export class GitIgnore {
     if (!isAbsolute(file)) {
       throw Error('Expected an absolute path')
     }
+    if (!name) {
+      name = basename(file)
+    }
     let match: GlobMatcher | false | null
     if ((match = this.matchRootGlobs)) {
       if (match(file, name)) return true
@@ -33,23 +36,18 @@ export class GitIgnore {
       if (match === false) {
         continue
       }
-      if (match && match(file, name)) {
+      if (match) {
+        if (!match(file, name)) {
+          continue
+        }
         return true
       }
       if (!fs.isFile(path)) {
         this.globTree[pathId] = false
         continue
       }
-      match = createMatcher(readLines(path), glob => {
-        if (glob) {
-          // Add implied globstar
-          if ('*/'.indexOf(glob[0]) < 0) {
-            glob = '**/' + glob
-          }
-          glob = join(dir, glob)
-        }
-        return glob
-      })
+      const lines = readLines(path).filter(line => line && line[0] !== '#')
+      match = createMatcher(lines, glob => join(dir, glob))
       this.globTree[pathId] = match || false
       if (match && match(file, name)) {
         return true

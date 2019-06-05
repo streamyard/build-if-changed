@@ -1,5 +1,5 @@
 import { join, resolve, basename, dirname, isAbsolute } from 'path'
-import { crawl } from 'recrawl'
+import { crawl, GlobMatcher } from 'recrawl'
 import fs = require('saxon/sync')
 import spawn from './spawn'
 import checksum from './checksum'
@@ -9,16 +9,19 @@ const PKG_JSON = 'package.json'
 const CACHE_NAME = '.bic_cache'
 const ALWAYS_SKIP = [CACHE_NAME, '.git', 'node_modules']
 
-export const findPackages = opts =>
-  crawl(opts.cwd, {
+export const findPackages = opts => {
+  const filter: GlobMatcher | undefined =
+    opts.filter &&
+    ((file, name) => {
+      return opts.filter(join(opts.cwd, file), name)
+    })
+  return crawl(opts.cwd, {
     only: [PKG_JSON],
     skip: ALWAYS_SKIP.concat(opts.skip || []),
-    filter:
-      opts.filter &&
-      ((file, name) => {
-        return opts.filter(join(opts.cwd, file), name)
-      }),
+    enter: filter && (dir => filter(dir)),
+    filter,
   })
+}
 
 export const loadPackages = (packages, opts: any = {}) => {
   const log = createLog(opts)
@@ -105,14 +108,17 @@ export const getChanged = (packages, opts: any = {}) => {
       return false
     }
 
+    const filter: GlobMatcher | undefined =
+      opts.filter &&
+      ((file, name) => {
+        return opts.filter(join(pkg.root, file), name)
+      })
+
     const files = await crawl(pkg.root, {
       only: Array.isArray(config) ? config : config.only,
       skip: ALWAYS_SKIP.concat(config.skip || []),
-      filter:
-        opts.filter &&
-        ((file, name) => {
-          return opts.filter(join(pkg.root, file), name)
-        }),
+      enter: filter && (dir => filter(dir)),
+      filter,
     })
 
     const cachePath = join(pkg.root, CACHE_NAME)
