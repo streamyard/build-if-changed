@@ -1,8 +1,8 @@
-const { yellow } = require('./colors')
+import colors from './colors'
 
-module.exports = (opts = {}) => {
+export default (opts: any = {}) => {
   const log = opts.silent ? () => {} : opts.log || console.log
-  const warn = yellow('warn:')
+  const warn = colors.yellow('warn:')
   log.warn = opts.silent
     ? log
     : (msg, ...args) =>

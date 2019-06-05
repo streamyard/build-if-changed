@@ -1,6 +1,6 @@
-const { spawn } = require('child_process')
+import { spawn } from 'child_process'
 
-module.exports = (command, opts) => {
+export default (command, opts) => {
   let file, args
   if (process.platform === 'win32') {
     file = process.env.comspec || 'cmd.exe'

@@ -1,7 +1,7 @@
-const crypto = require('crypto')
-const fs = require('fs')
+import * as crypto from 'crypto'
+import * as fs from 'fs'
 
-module.exports = function checksum(filename, opts = {}) {
+export default (filename, opts: any = {}) => {
   const { algorithm = 'sha1', encoding = 'hex' } = opts
 
   const hash = crypto.createHash(algorithm)
