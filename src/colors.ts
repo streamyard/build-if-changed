@@ -1,5 +1,5 @@
-const hasFlag = require('has-flag')
-const ansi = require('ansi-256-colors')
+import hasFlag = require('has-flag')
+import ansi = require('ansi-256-colors')
 
 const disabled = hasFlag('--no-color') || !!process.env.NO_COLOR
 const colors = {
@@ -20,8 +20,13 @@ const colors = {
   lpink: [5, 1, 4],
 }
 
+const colorFns: any = {}
+export default colorFns as {
+  [P in keyof typeof colors]: (msg: string) => string
+}
+
 const noop = msg => msg
 for (const name in colors) {
   const color = ansi.fg.getRgb(...colors[name])
-  exports[name] = disabled ? noop : msg => color + msg + ansi.reset
+  colorFns[name] = disabled ? noop : msg => color + msg + ansi.reset
 }

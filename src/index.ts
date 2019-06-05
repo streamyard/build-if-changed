@@ -1,20 +1,22 @@
-const { join, resolve, basename, dirname, isAbsolute } = require('path')
-const { crawl } = require('recrawl')
-const fs = require('saxon/sync')
-const spawn = require('./spawn')
-const checksum = require('./checksum')
-const createLog = require('./log')
+import { join, resolve, basename, dirname, isAbsolute } from 'path'
+import { crawl } from 'recrawl'
+import fs from 'saxon/sync'
+import spawn from './spawn'
+import checksum from './checksum'
+import createLog from './log'
 
 const PKG_JSON = 'package.json'
 const CACHE_NAME = '.bic_cache'
 
-exports.findPackages = opts =>
+export const findPackages = opts =>
   crawl(opts.cwd, {
     only: [PKG_JSON],
-    skip: opts.ignore ? opts.ignore(opts.cwd) : [],
+    filter(file, name) {
+      return opts.filter(join(opts.cwd, file), name)
+    },
   })
 
-exports.loadPackages = (packages, opts = {}) => {
+export const loadPackages = (packages, opts: any = {}) => {
   const log = createLog(opts)
   return packages
     .map(pkg => {
@@ -45,7 +47,7 @@ exports.loadPackages = (packages, opts = {}) => {
     .filter(pkg => !!pkg)
 }
 
-exports.buildPackages = async (packages, opts = {}) => {
+export const buildPackages = async (packages, opts: any = {}) => {
   const log = createLog(opts)
   const exitCodes = await Promise.all(
     packages.map(pkg => {
@@ -54,7 +56,7 @@ exports.buildPackages = async (packages, opts = {}) => {
         cwd: pkg.root,
       })
 
-      const prefix = getPrefix(pkg.name, log)
+      const prefix = getPrefix(pkg.name)
       proc.stdout.on('data', data => {
         getLines(data).forEach(line => {
           log(prefix, line)
@@ -85,7 +87,7 @@ exports.buildPackages = async (packages, opts = {}) => {
   return exitCodes.every(code => code == 0)
 }
 
-exports.getChanged = (packages, opts = {}) => {
+export const getChanged = (packages, opts: any = {}) => {
   const promises = packages.map(async pkg => {
     const config = 'bic' in pkg ? pkg.bic : {}
     if (config === false) {
@@ -101,17 +103,17 @@ exports.getChanged = (packages, opts = {}) => {
 
     const files = await crawl(pkg.root, {
       only: Array.isArray(config) ? config : config.only,
-      skip: [CACHE_NAME].concat(
-        opts.ignore ? opts.ignore(pkg.root) : [],
-        config.skip || []
-      ),
+      skip: [CACHE_NAME].concat(config.skip || []),
+      filter(file, name) {
+        return opts.filter(join(pkg.root, file), name)
+      },
     })
 
     const cachePath = join(pkg.root, CACHE_NAME)
     const cache = fs.isFile(cachePath) ? fs.readJson(cachePath) : {}
 
     // Track changed paths for easier debugging.
-    const changed = []
+    const changed: string[] = []
 
     // Look for deleted files.
     for (const name in cache)
@@ -144,12 +146,12 @@ exports.getChanged = (packages, opts = {}) => {
 
   // Return the packages that changed.
   return Promise.all(promises).then(changed =>
-    packages.filter((p, i) => changed[i])
+    packages.filter((_, i) => changed[i])
   )
 }
 
 const nextColor = (() => {
-  const colors = require('./colors')
+  const colors = require('./colors').default
   const keys = Object.keys(colors).reverse()
   let i = 0
   return () => {

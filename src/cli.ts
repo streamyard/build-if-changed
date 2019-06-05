@@ -1,20 +1,25 @@
-const { findPackages, loadPackages, getChanged, buildPackages } = require('.')
-const createLog = require('./log')
-const path = require('path')
-const fs = require('saxon/sync')
+import { findPackages, loadPackages, getChanged, buildPackages } from '.'
+import { GitIgnore } from './gitignore'
+import createLog from './log'
+import path from 'path'
+import fs from 'saxon/sync'
 
 exports.run = async (opts = {}) => {
   const log = createLog(opts)
 
   if (opts.help) {
-    log(fs.read(path.resolve(__dirname, './help.txt')))
+    log(fs.read(path.resolve(__dirname, '..', 'help.txt')))
     process.exit()
   }
 
-  if (opts.cwd == null) opts.cwd = process.cwd()
-  if (opts.ignore == null) {
-    opts.ignore = await require('./gitignore')(opts.cwd)
+  if (opts.cwd == null) {
+    opts.cwd = process.cwd()
   }
+
+  const filter = opts.filter
+  const gitIgnore = new GitIgnore(opts.cwd)
+  opts.filter = (file, name) =>
+    !gitIgnore.test(file, name) && (!filter || filter(file, name))
 
   // Load "package.json" modules into memory.
   let packages = await findPackages(opts)
