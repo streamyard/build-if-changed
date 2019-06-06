@@ -177,13 +177,14 @@ function getPrefix(name) {
   return nextColor()(`[${name}]`)
 }
 
-function getLines(data) {
+function getLines(data: string) {
   return data
     .toString()
-    .trim()
+    .replace(/^\s*\n/, '')
+    .replace(/\n\s*$/, '')
     .split(/\r?\n/)
 }
 
-function getRunner(root) {
+function getRunner(root: string) {
   return fs.isFile(join(root, 'package-lock.json')) ? 'npm' : 'yarn'
 }
