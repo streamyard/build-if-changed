@@ -14,7 +14,8 @@
     "help.txt"
   ],
   "scripts": {
-    "build": "tsc -p ."
+    "build": "tsc -p .",
+    "prepublishOnly": "yarn build"
   },
   "dependencies": {
     "ansi-256-colors": "^1.1.0",
