@@ -1,6 +1,6 @@
 {
   "name": "build-if-changed",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "Run build scripts only when files changed",
   "license": "MIT",
   "main": "lib/index.js",
