@@ -14,7 +14,7 @@ export class GitIgnore {
     /** This maps tree paths to their own glob registry */
     readonly globTree: { [pathId: string]: GlobMatcher | false } = {},
     /** These globs are always used */
-    readonly rootGlobs = ['.git', 'node_modules']
+    readonly rootGlobs = ['.*', 'node_modules']
   ) {
     this.matchRootGlobs = createMatcher(rootGlobs)
   }

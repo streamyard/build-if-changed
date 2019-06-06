@@ -7,7 +7,7 @@ import createLog from './log'
 
 const PKG_JSON = 'package.json'
 const CACHE_NAME = '.bic_cache'
-const ALWAYS_SKIP = [CACHE_NAME, '.git', 'node_modules']
+const ALWAYS_SKIP = ['.*', 'node_modules']
 
 export const findPackages = opts => {
   const filter: GlobMatcher | undefined =
