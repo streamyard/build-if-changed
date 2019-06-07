@@ -1,7 +1,7 @@
 import * as crypto from 'crypto'
 import * as fs from 'fs'
 
-export default (filename, opts: any = {}) => {
+export default (filename: string, opts: any = {}) => {
   const { algorithm = 'sha1', encoding = 'hex' } = opts
 
   const hash = crypto.createHash(algorithm)
@@ -13,7 +13,7 @@ export default (filename, opts: any = {}) => {
     { end: false }
   )
 
-  return new Promise((resolve, reject) => {
+  return new Promise<string>((resolve, reject) => {
     fileStream.on('error', reject)
     fileStream.on('end', () => {
       hash.end()

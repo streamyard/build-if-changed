@@ -9,11 +9,37 @@ const PKG_JSON = 'package.json'
 const CACHE_NAME = '.bic_cache'
 const ALWAYS_SKIP = ['.*', 'node_modules']
 
-export const findPackages = opts => {
+/** Each key is a relative path. Each value holds the "mtime" and content hash. */
+export type Cache = { [key: string]: [number, string] }
+
+/** These options are shared between all exports */
+export type Options = {
+  cwd: string
+  skip?: string[]
+  filter?: (file: string, name?: string) => boolean
+  force?: boolean
+}
+
+/** "bic" config from "package.json" */
+export type Config = {
+  only?: string[]
+  skip?: string[]
+}
+
+export type PackageJson = {
+  [key: string]: any
+  name: string
+  root: string
+  scripts?: { [key: string]: string }
+  cache?: Cache
+  bic?: Config | string[] | false
+}
+
+export const findPackages = (opts: Options) => {
   const filter: GlobMatcher | undefined =
     opts.filter &&
     ((file, name) => {
-      return opts.filter(join(opts.cwd, file), name)
+      return opts.filter!(join(opts.cwd, file), name)
     })
   return crawl(opts.cwd, {
     only: [PKG_JSON],
@@ -23,7 +49,10 @@ export const findPackages = opts => {
   })
 }
 
-export const loadPackages = (packages, opts: any = {}) => {
+export const loadPackages = (
+  packages: string[],
+  opts: Options
+): PackageJson[] => {
   const log = createLog(opts)
   return packages
     .map(pkg => {
@@ -51,10 +80,10 @@ export const loadPackages = (packages, opts: any = {}) => {
         log.warn('Package has invalid "%s" module:\n  %O', PKG_JSON, pkg)
       }
     })
-    .filter(pkg => !!pkg)
+    .filter(Boolean)
 }
 
-export const buildPackages = async (packages, opts: any = {}) => {
+export const buildPackages = async (packages: PackageJson[], opts: Options) => {
   const log = createLog(opts)
   const exitCodes = await Promise.all(
     packages.map(pkg => {
@@ -82,9 +111,9 @@ export const buildPackages = async (packages, opts: any = {}) => {
         })
         proc.on('exit', exit)
         function exit(code) {
-          if (code != 0) {
-            // Destroy the cache when build fails.
-            fs.remove(join(pkg.root, CACHE_NAME))
+          // Update the cache only if the build succeeds.
+          if (code === 0) {
+            fs.write(join(pkg.root, CACHE_NAME), JSON.stringify(pkg.cache))
           }
           resolve(code)
         }
@@ -94,35 +123,38 @@ export const buildPackages = async (packages, opts: any = {}) => {
   return exitCodes.every(code => code == 0)
 }
 
-export const getChanged = (packages, opts: any = {}) => {
+export const getChanged = (packages: PackageJson[], opts: Options) => {
   const promises = packages.map(async pkg => {
-    const config = 'bic' in pkg ? pkg.bic : {}
+    let config = pkg.bic == null ? {} : pkg.bic
     if (config === false) {
-      return false
+      return null
+    }
+    if (Array.isArray(config)) {
+      config = { only: config }
     }
 
     // Bail when the "build" script is empty or it executes
     // the "bic" or "build-if-changed" command.
     const script = pkg.scripts && pkg.scripts.build
     if (!script || /\b(bic|build-if-changed)\b/.test(script)) {
-      return false
+      return null
     }
 
     const filter: GlobMatcher | undefined =
       opts.filter &&
       ((file, name) => {
-        return opts.filter(join(pkg.root, file), name)
+        return opts.filter!(join(pkg.root, file), name)
       })
 
     const files = await crawl(pkg.root, {
-      only: Array.isArray(config) ? config : config.only,
+      only: config.only,
       skip: ALWAYS_SKIP.concat(config.skip || []),
       enter: filter && (dir => filter(dir)),
       filter,
     })
 
     const cachePath = join(pkg.root, CACHE_NAME)
-    const cache = fs.isFile(cachePath) ? fs.readJson(cachePath) : {}
+    const cache: Cache = fs.isFile(cachePath) ? fs.readJson(cachePath) : {}
 
     // Track changed paths for easier debugging.
     const changed: string[] = []
@@ -152,14 +184,14 @@ export const getChanged = (packages, opts: any = {}) => {
       })
     )
 
-    if (changed.length) fs.write(cachePath, JSON.stringify(cache))
-    return !!(changed.length || opts.force)
+    if (changed.length || opts.force) {
+      pkg.cache = cache
+      return pkg
+    }
+    return null
   })
 
-  // Return the packages that changed.
-  return Promise.all(promises).then(changed =>
-    packages.filter((_, i) => changed[i])
-  )
+  return Promise.all(promises)
 }
 
 const nextColor = (() => {

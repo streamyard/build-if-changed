@@ -22,11 +22,12 @@ exports.run = async (opts = {}) => {
     !gitIgnore.test(file, name) && (!filter || filter(file, name))
 
   // Load "package.json" modules into memory.
-  let packages = await findPackages(opts)
-  packages = loadPackages(packages, opts)
+  const packagePaths = await findPackages(opts)
+  const packages = loadPackages(packagePaths, opts)
 
+  // Find which packages have changed.
   const changed = await getChanged(packages, opts)
-  if (!changed.length) {
+  if (!hasTruthy(changed)) {
     log('✨  No changes were found.')
     return []
   }
@@ -42,4 +43,10 @@ exports.run = async (opts = {}) => {
 
 function plural(word, count) {
   return count == 1 ? word : word + 's'
+}
+
+type Falsy = null | undefined | false | 0 | ''
+
+function hasTruthy<T>(changed: T[]): changed is Exclude<T, Falsy>[] {
+  return changed.some(Boolean)
 }
