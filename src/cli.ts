@@ -27,7 +27,7 @@ exports.run = async (opts = {}) => {
 
   // Find which packages have changed.
   const changed = await getChanged(packages, opts)
-  if (!hasTruthy(changed)) {
+  if (!changed.length) {
     log('✨  No changes were found.')
     return []
   }
@@ -43,10 +43,4 @@ exports.run = async (opts = {}) => {
 
 function plural(word, count) {
   return count == 1 ? word : word + 's'
-}
-
-type Falsy = null | undefined | false | 0 | ''
-
-function hasTruthy<T>(changed: T[]): changed is Exclude<T, Falsy>[] {
-  return changed.some(Boolean)
 }

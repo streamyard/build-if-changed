@@ -191,7 +191,7 @@ export const getChanged = (packages: PackageJson[], opts: Options) => {
     return null
   })
 
-  return Promise.all(promises)
+  return Promise.all(promises).then(filterTruthy)
 }
 
 const nextColor = (() => {
@@ -219,4 +219,10 @@ function getLines(data: string) {
 
 function getRunner(root: string) {
   return fs.isFile(join(root, 'package-lock.json')) ? 'npm' : 'yarn'
+}
+
+type Falsy = null | undefined | false | 0 | ''
+
+function filterTruthy<T>(changed: T[]): Exclude<T, Falsy>[] {
+  return changed.filter(Boolean) as any
 }
