@@ -30,6 +30,7 @@ export type PackageJson = {
   [key: string]: any
   name: string
   root: string
+  dependencies?: { [key: string]: string }
   scripts?: { [key: string]: string }
   cache?: Cache
   bic?: Config | string[] | false
@@ -85,41 +86,39 @@ export const loadPackages = (
 
 export const buildPackages = async (packages: PackageJson[], opts: Options) => {
   const log = createLog(opts)
-  const exitCodes = await Promise.all(
-    packages.map(pkg => {
-      const cmd = getRunner(pkg.root)
-      const proc = spawn(`${cmd} run build`, {
-        cwd: pkg.root,
-      })
+  const exitCodes = await runTopological(packages, pkg => {
+    const cmd = getRunner(pkg.root)
+    const proc = spawn(`${cmd} run build`, {
+      cwd: pkg.root,
+    })
 
-      const prefix = getPrefix(pkg.name)
-      proc.stdout.on('data', data => {
-        getLines(data).forEach(line => {
-          log(prefix, line)
-        })
-      })
-      proc.stderr.on('data', data => {
-        getLines(data).forEach(line => {
-          process.stdout.write(`${prefix} ${line}\n`)
-        })
-      })
-
-      return new Promise(resolve => {
-        proc.on('error', err => {
-          console.error(err)
-          exit(1)
-        })
-        proc.on('exit', exit)
-        function exit(code) {
-          // Update the cache only if the build succeeds.
-          if (code === 0) {
-            fs.write(join(pkg.root, CACHE_NAME), JSON.stringify(pkg.cache))
-          }
-          resolve(code)
-        }
+    const prefix = getPrefix(pkg.name)
+    proc.stdout.on('data', data => {
+      getLines(data).forEach(line => {
+        log(prefix, line)
       })
     })
-  )
+    proc.stderr.on('data', data => {
+      getLines(data).forEach(line => {
+        process.stdout.write(`${prefix} ${line}\n`)
+      })
+    })
+
+    return new Promise<number>(resolve => {
+      proc.on('error', err => {
+        console.error(err)
+        exit(1)
+      })
+      proc.on('exit', exit)
+      function exit(code) {
+        // Update the cache only if the build succeeds.
+        if (code === 0) {
+          fs.write(join(pkg.root, CACHE_NAME), JSON.stringify(pkg.cache))
+        }
+        resolve(code)
+      }
+    })
+  })
   return exitCodes.every(code => code == 0)
 }
 
@@ -192,6 +191,24 @@ export const getChanged = (packages: PackageJson[], opts: Options) => {
   })
 
   return Promise.all(promises).then(filterTruthy)
+}
+
+const runTopological = <T>(
+  packages: PackageJson[],
+  action: (pkg: PackageJson) => Promise<T>
+): Promise<T[]> => {
+  const promises: Promise<T>[] = []
+  const run = (pkg: PackageJson, i: number) =>
+    promises[i] ||
+    (promises[i] = Promise.all(
+      Object.keys(pkg.dependencies || {}).map(name => {
+        const i = packages.findIndex(pkg => pkg.name === name)
+        return i >= 0 && run(packages[i], i)
+      })
+    ).then(() => action(pkg)))
+
+  packages.forEach(run)
+  return Promise.all(promises)
 }
 
 const nextColor = (() => {
