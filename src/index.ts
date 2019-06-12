@@ -116,7 +116,7 @@ export const buildPackages = async (packages: PackageJson[], opts: Options) => {
           fs.write(join(pkg.root, CACHE_NAME), JSON.stringify(pkg.cache))
           resolve()
         } else {
-          reject(new Error())
+          reject(new Error('Build failed: ' + pkg.root))
         }
       }
     })
