@@ -1,3 +1,7 @@
+# 1.5.0
+
+- Packages are now built in topological order (dependencies first)
+
 # 1.4.0
 
 - Use `yarn run` by default (and use `npm run` if a `package-lock.json` exists)
