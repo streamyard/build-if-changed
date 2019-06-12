@@ -86,7 +86,7 @@ export const loadPackages = (
 
 export const buildPackages = async (packages: PackageJson[], opts: Options) => {
   const log = createLog(opts)
-  const exitCodes = await runTopological(packages, pkg => {
+  return runTopological(packages, pkg => {
     const cmd = getRunner(pkg.root)
     const proc = spawn(`${cmd} run build`, {
       cwd: pkg.root,
@@ -100,11 +100,11 @@ export const buildPackages = async (packages: PackageJson[], opts: Options) => {
     })
     proc.stderr.on('data', data => {
       getLines(data).forEach(line => {
-        process.stdout.write(`${prefix} ${line}\n`)
+        process.stderr.write(`${prefix} ${line}\n`)
       })
     })
 
-    return new Promise<number>(resolve => {
+    return new Promise<void>((resolve, reject) => {
       proc.on('error', err => {
         console.error(err)
         exit(1)
@@ -114,12 +114,13 @@ export const buildPackages = async (packages: PackageJson[], opts: Options) => {
         // Update the cache only if the build succeeds.
         if (code === 0) {
           fs.write(join(pkg.root, CACHE_NAME), JSON.stringify(pkg.cache))
+          resolve()
+        } else {
+          reject(new Error())
         }
-        resolve(code)
       }
     })
   })
-  return exitCodes.every(code => code == 0)
 }
 
 export const getChanged = (packages: PackageJson[], opts: Options) => {

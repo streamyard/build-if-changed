@@ -33,9 +33,10 @@ exports.run = async (opts = {}) => {
   }
 
   log(`📦  Building ${changed.length} ${plural('package', changed.length)}...`)
-  if (await buildPackages(changed, opts)) {
+  try {
+    await buildPackages(changed, opts)
     log(`✨  Finished without errors.`)
-  } else {
+  } catch {
     log(`💥  Build failed. Check the logs above.`)
     process.exit(1)
   }
