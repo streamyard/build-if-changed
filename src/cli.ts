@@ -1,10 +1,20 @@
-import { findPackages, loadPackages, getChanged, buildPackages } from '.'
+import {
+  findPackages,
+  loadPackages,
+  getChanged,
+  buildPackages,
+  Options,
+} from '.'
 import { GitIgnore } from './gitignore'
 import { resolve } from 'path'
 import createLog from './log'
 import fs = require('saxon/sync')
 
-exports.run = async (opts = {}) => {
+interface CLIOptions extends Options {
+  help?: boolean
+}
+
+exports.run = async (opts: CLIOptions = {} as any) => {
   const log = createLog(opts)
 
   if (opts.help) {
