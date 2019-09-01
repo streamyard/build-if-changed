@@ -32,25 +32,28 @@ export class GitIgnore {
     for (let dir = dirname(file); !isHomeDir(dir); dir = dirname(dir)) {
       const path = join(dir, '.gitignore')
       const pathId = relative(this.rootDir, path)
+
       match = this.globTree[pathId]
-      if (match === false) {
-        continue
-      }
-      if (match) {
-        if (!match(file, name)) {
-          continue
+      if (match !== false) {
+        if (match) {
+          if (match(file, name)) {
+            return true
+          }
+        } else if (fs.isFile(path)) {
+          const lines = readLines(path).filter(line => line && line[0] !== '#')
+          match = createMatcher(lines, glob => join(dir, glob))
+          this.globTree[pathId] = match || false
+          if (match && match(file, name)) {
+            return true
+          }
+        } else {
+          this.globTree[pathId] = false
         }
-        return true
       }
-      if (!fs.isFile(path)) {
-        this.globTree[pathId] = false
-        continue
-      }
-      const lines = readLines(path).filter(line => line && line[0] !== '#')
-      match = createMatcher(lines, glob => join(dir, glob))
-      this.globTree[pathId] = match || false
-      if (match && match(file, name)) {
-        return true
+
+      // Never use .gitignore outside the git repository.
+      if (fs.isDir(join(dir, '.git'))) {
+        break
       }
     }
     return false
