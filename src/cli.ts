@@ -33,9 +33,13 @@ exports.run = async (opts: CLIOptions = {} as any) => {
 
   // Load "package.json" modules into memory.
   const packagePaths = await findPackages(opts)
-  const packages = loadPackages(packagePaths, opts)
+  if (!packagePaths.length) {
+    log('⚠️  No packages were found.')
+    return []
+  }
 
   // Find which packages have changed.
+  const packages = loadPackages(packagePaths, opts)
   const changed = await getChanged(packages, opts)
   if (!changed.length) {
     log('✨  No changes were found.')
