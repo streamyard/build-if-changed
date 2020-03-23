@@ -207,12 +207,19 @@ const runTopological = <T>(
   action: (pkg: PackageJson) => Promise<T>
 ): Promise<T[]> => {
   const promises: Promise<T>[] = []
-  const run = (pkg: PackageJson, i: number) =>
-    promises[i] ||
-    (promises[i] = Promise.all(
-      Object.keys(pkg.dependencies || {}).map(name => {
-        const i = packages.findIndex(pkg => pkg.name === name)
-        return i >= 0 && run(packages[i], i)
+  const run = (pkg: PackageJson, index: number) =>
+    promises[index] ||
+    (promises[index] = Promise.all(
+      Object.entries(pkg.dependencies || {}).map(([name, value]) => {
+        let predicate: (pkg: PackageJson) => boolean
+        if (value.startsWith('link:')) {
+          const root = resolve(pkg.root, value.slice(5))
+          predicate = pkg => pkg.root === root
+        } else {
+          predicate = pkg => pkg.name === name
+        }
+        const index = packages.findIndex(predicate)
+        return index >= 0 && run(packages[index], index)
       })
     ).then(() => action(pkg)))
 
